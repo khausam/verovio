@@ -130,6 +130,9 @@ private:
     std::vector<Harm *> m_harmStack;
     std::vector<Slur *> m_slurStack;
     std::vector<Tie *> m_tieStack;
+    std::vector<Note *> m_tupletStack;  // KH: Not sure if Note* is the correct class type to use here.
+    int m_tupletCount = 0;
+
 
     std::vector<LayerElement *> m_layerElements;
     std::vector<LayerElement *> m_noteStack;

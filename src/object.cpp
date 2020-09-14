@@ -610,7 +610,8 @@ void Object::SeedUuid(unsigned int seed)
 
 void Object::SetParent(Object *parent)
 {
-    assert(!m_parent);
+    // KH: Commenting out since both beam->AddChild and tuplet-AddChild want to set the parent. So for now, I guess the last one wins.
+    //assert(!m_parent);
     m_parent = parent;
 }
 

@@ -329,19 +329,52 @@ void ABCInput::AddBeam()
     m_noteStack.clear();
 }
 
+/*
+ Test ABC content:
+ 
+ X:1
+ T:Quarter Note Triplet
+ L:1
+ M:4/4
+ K:C
+ (3C/4C/4C/4C/2 |]
+ 
+ and
+ 
+ X:1
+ T:Eighth Note Triplet
+ L:1
+ M:4/4
+ K:C
+ (3C/8C/8C/8C3/4 |]
+
+ */
+
 void ABCInput::AddTuplet()
 {
-    if (!m_noteStack.size()) {
+    if (!m_tupletStack.size()) {
         return;
     }
     else {
         Tuplet *tuplet = new Tuplet();
-        for (auto iter = m_noteStack.begin(); iter != m_noteStack.end(); ++iter) {
+        Beam *beam = new Beam();
+        for (auto iter = m_tupletStack.begin(); iter != m_tupletStack.end(); ++iter) {
             tuplet->AddChild(*iter);
+            
+            if ((*iter)->GetDur() >= DURATION_8) {  // KH: Should we assert that all notes are the same duration?
+                beam->AddChild(*iter);
+            }
         }
+        tuplet->SetNum(m_tupletCount);
+        tuplet->SetNumbase(2);          // KH: What is this? Maybe 'q' in the p:q:r notation?
         m_layer->AddChild(tuplet);
+        
+        if(beam->GetChildCount() >= 2) {
+            m_layer->AddChild(beam);
+        }
     }
-    m_noteStack.clear();
+    m_tupletStack.clear();
+    m_tupletCount = 0;
 }
 
 void ABCInput::AddAnnot(std::string remark)
@@ -1081,8 +1114,9 @@ void ABCInput::readMusicCode(const std::string &musicCode, Section *section)
 
         // tuplets
         else if ((i + 2 < (int)musicCode.length()) && musicCode.at(i) == '(' && isdigit(musicCode.at(i + 1))) {
-            LogWarning("ABC input: Tuplets not supported yet");
+            //LogWarning("ABC input: Tuplets not supported yet");
             // AddTuplet();
+            m_tupletCount = musicCode.at(i + 1) - '0';
         }
 
         // slurs and ties
@@ -1288,13 +1322,22 @@ void ABCInput::readMusicCode(const std::string &musicCode, Section *section)
                 if (dots > 0) note->SetDots(dots);
                 if (num == 0) note->SetStemVisible(BOOLEAN_false);
                 note->SetDur(meiDur);
-                if (note->GetDur() < DURATION_8) {
-                    // if note cannot be beamed, write it directly to the layer
-                    if (m_noteStack.size() > 0) AddBeam();
-                    m_layer->AddChild(note);
+                if(m_tupletStack.size() < m_tupletCount) {  // KH: For now, keeping tuplet logic completely separate from existing code.
+                    m_tupletStack.push_back(note);
+                    
+                    if(m_tupletStack.size() == m_tupletCount) {
+                        AddTuplet();
+                    }
                 }
-                else
-                    m_noteStack.push_back(note);
+                else {
+                    if (note->GetDur() < DURATION_8) {
+                        // if note cannot be beamed, write it directly to the layer
+                        if (m_noteStack.size() > 0) AddBeam();
+                        m_layer->AddChild(note);
+                    }
+                    else
+                        m_noteStack.push_back(note);
+                }
             }
             // there should always only be one element in the harmony stack
             if (!m_harmStack.empty() && !m_harmStack.back()->HasStartid()) {

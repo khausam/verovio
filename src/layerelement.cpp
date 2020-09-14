@@ -682,7 +682,12 @@ int LayerElement::AlignHorizontally(FunctorParams *functorParams)
     assert(params);
 
     // if (m_alignment) LogDebug("Element %s %s", this->GetUuid().c_str(), this->GetClassName().c_str());
-    assert(!m_alignment);
+    // KH: Commenting out and returning immediately. No idea what's happening here, other than that it appears to be related to the existence
+    // of the beam and tuplet for the same set of notes.
+    //assert(!m_alignment);
+    if(m_alignment) {
+        return FUNCTOR_CONTINUE;
+    }
 
     if (this->IsScoreDefElement()) return FUNCTOR_SIBLINGS;
 
